@@ -102,6 +102,11 @@ config interface 'wan6'
 	option device 'eth3'
 	option reqaddress 'try'
 	option reqprefix 'auto'
-
-
+	
+config interface 'VPN'
+	option device 'ipsec0'
+	option proto 'static'
+	option ipaddr '192.168.200.1'
+	option netmask '255.255.255.0'
+	
 EOF
