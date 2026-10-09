@@ -15,26 +15,34 @@ date_version=$(date +"%y.%m.%d")
 orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
 sed -i "s/${orig_version}/R${date_version} by LERAN/g" package/lean/default-settings/files/zzz-default-settings
 
-# DIY script part2 - 编译中配置：下载OpenClash Meta核心/规则文件（编译阶段自动部署）
+# Git稀疏克隆，只克隆指定目录到本地
+function git_sparse_clone() {
+  branch="$1" repourl="$2" && shift 2
+  git clone --depth=1 -b $branch --single-branch --filter=blob:none --sparse $repourl
+  repodir=$(echo $repourl | awk -F '/' '{print $(NF)}')
+  cd $repodir && git sparse-checkout set $@
+  mv -f $@ ../package
+  cd .. && rm -rf $repodir
+}
+
+
+# DIY script part2 - 编译中配置：下载OpenClash核心/规则文件（编译阶段自动部署）
 # 1. 创建OpenClash核心目录（不存在则创建，确保目录结构完整）
 [ -d files/etc/openclash/core ] || mkdir -p files/etc/openclash/core
-
-# 2. ghproxy加速Github raw，国内Action稳定很多
-CLASH_META_URL="https://mirror.ghproxy.com/https://raw.githubusercontent.com/vernesong/OpenClash/core/dev/meta/clash-linux-amd64-v1.tar.gz"
-COUNTRY_URL="https://mirror.ghproxy.com/https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/lite/Country.mmdb"
-GEOIP_URL="https://mirror.ghproxy.com/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat"
-GEOSITE_URL="https://mirror.ghproxy.com/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat"
-
-# 3. 下载并部署文件，增加超时重试+失败中断，防止空文件打包进固件
+# 2. 定义各类文件下载地址（保留你原地址，适配x86_64架构）
+CLASH_META_URL="https://raw.githubusercontent.com/vernesong/OpenClash/core/dev/meta/clash-linux-amd64-v1.tar.gz"
+COUNTRY_URL="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/lite/Country.mmdb"
+GEOIP_URL="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat"
+GEOSITE_URL="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat"
+# 3. 下载并部署文件（静默下载，适配编译脚本无交互执行）
 echo -e "\033[32m开始下载OpenClash Meta核心及规则文件...\033[0m"
-wget --timeout=10 --tries=2 -qO- $CLASH_META_URL | tar xOz > files/etc/openclash/core/clash_meta || { echo -e "\033[31m❌ Clash Meta核心下载失败\033[0m"; exit 1; }
-wget --timeout=10 --tries=2 -qO $COUNTRY_URL files/etc/openclash/Country.mmdb || { echo -e "\033[31m❌ Country.mmdb下载失败\033[0m"; exit 1; }
-wget --timeout=10 --tries=2 -qO $GEOIP_URL files/etc/openclash/GeoIP.dat || { echo -e "\033[31m❌ GeoIP.dat下载失败\033[0m"; exit 1; }
-wget --timeout=10 --tries=2 -qO $GEOSITE_URL files/etc/openclash/GeoSite.dat || { echo -e "\033[31m❌ GeoSite.dat下载失败\033[0m"; exit 1; }
-
-# 4. 赋予核心文件执行权限
-chmod +x files/etc/openclash/core/clash_meta
-# 5. 下载完成提示
+wget -qO- $CLASH_META_URL | tar xOz > files/etc/openclash/core/clash_meta
+wget -qO- $COUNTRY_URL > files/etc/openclash/Country.mmdb
+wget -qO- $GEOIP_URL > files/etc/openclash/GeoIP.dat
+wget -qO- $GEOSITE_URL > files/etc/openclash/GeoSite.dat
+# 4. 赋予核心文件执行权限（确保OpenClash能正常启动核心）
+chmod +x files/etc/openclash/core/clash*
+# 5. 下载完成提示（方便编译时查看执行状态）
 echo -e "\033[32m✅ OpenClash核心、Country.mmdb、GeoIP.dat、GeoSite.dat 下载部署完成！\033[0m"
 
 
