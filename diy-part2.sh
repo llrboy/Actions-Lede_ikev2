@@ -1,16 +1,10 @@
-#!/bin/bash
-# 修改后台默认IP地址
-sed -i 's/192.168.1.1/192.168.81.1/g' package/base-files/files/bin/config_generate
-# 【删除，不存在该文件】
-# sed -i 's/192.168.1.1/192.168.81.1/g' package/base-files/luci/bin/config_generate
+# 切换内核
+sed -i 's/6.6/6.12/g' target/linux/x86/Makefile
 
-# 切换内核（注释状态，如需6.18取消注释，注意：6.18对igc驱动有兼容性风险，ESXi直通I225谨慎）
-# sed -i 's/^KERNEL_PATCHVER:=6.12/KERNEL_PATCHVER:=6.18/g' target/linux/x86/Makefile
-
-# x86 型号只显示 CPU 型号（Lean源码专属）
+# x86 型号只显示 CPU 型号
 sed -i 's/${g}.*/${a}${b}${c}${d}${e}${f}${hydrid}/g' package/lean/autocore/files/x86/autocore
 
-# 修改版本为编译日期（Lean源码专属）
+# 修改版本为编译日期
 date_version=$(date +"%y.%m.%d")
 orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
 sed -i "s/${orig_version}/R${date_version} by LERAN/g" package/lean/default-settings/files/zzz-default-settings
@@ -45,6 +39,52 @@ chmod +x files/etc/openclash/core/clash*
 # 5. 下载完成提示（方便编译时查看执行状态）
 echo -e "\033[32m✅ OpenClash核心、Country.mmdb、GeoIP.dat、GeoSite.dat 下载部署完成！\033[0m"
 
+# -----------------------------------------------------------------------------
+# 1. 预置网络配置 (Network Configuration)
+# -----------------------------------------------------------------------------
+# 创建自定义配置文件的存放目录（如果不存在）
+mkdir -p package/base-files/files/etc/config
 
+# 确保有默认值（防止本地测试时变量为空导致配置错误，这里设为占位符）
+: "${PPPOE_USERNAME:=username_placeholder}"
+: "${PPPOE_PASSWORD:=password_placeholder}"
 
+# 将你的 network 文件内容写入目标位置
+# 解释：EOF 块中的 ${变量} 会被自动替换为环境变量中的真实值
+cat > package/base-files/files/etc/config/network <<EOF
 
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config globals 'globals'
+	option packet_steering '1'
+
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'eth0'
+	list ports 'eth1'
+	list ports 'eth2'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '192.168.81.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+	option ip6ifaceid 'random'
+
+config interface 'wan'
+	option device 'eth3'
+	option proto 'dhcp'
+
+config interface 'wan6'
+	option proto 'dhcpv6'
+	option device 'eth3'
+	option reqaddress 'try'
+	option reqprefix 'auto'
+	
+EOF
