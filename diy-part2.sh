@@ -85,4 +85,10 @@ config interface 'wan'
 	option device 'eth3'
 	option proto 'dhcp'
 	
+config interface 'wan6'
+	option proto 'dhcpv6'
+	option device 'eth3'
+	option reqaddress 'try'
+	option reqprefix 'auto'
+	
 EOF
