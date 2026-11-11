@@ -28,7 +28,7 @@ function git_sparse_clone() {
 # 1. 创建OpenClash核心目录（不存在则创建，确保目录结构完整）
 [ -d files/etc/openclash/core ] || mkdir -p files/etc/openclash/core
 # 2. 定义各类文件下载地址（保留你原地址，适配x86_64架构）
-CLASH_META_URL="https://raw.githubusercontent.com/vernesong/OpenClash/core/dev/meta/clash-linux-amd64-v1.tar.gz"
+CLASH_META_URL="https://raw.githubusercontent.com/vernesong/OpenClash/core/dev/meta/clash-linux-amd64-v3.tar.gz"
 COUNTRY_URL="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/lite/Country.mmdb"
 GEOIP_URL="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat"
 GEOSITE_URL="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat"
